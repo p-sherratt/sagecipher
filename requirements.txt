@@ -1,4 +1,5 @@
 paramiko
 pycrypto
 click
+pyinotify
 passlib; python_version < '2.7.8'
