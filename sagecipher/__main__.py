@@ -96,13 +96,17 @@ def decrypt(**a):
         if a['input'] == '-':
             args.append(sys.stdin.read())
 
-        st = os.stat(a['output'])
-        if st and not stat.S_ISFIFO(st.st_mode):
-            raise click.ClickException('Output file %s exists and is not a FIFO!' % a['output'])
-        elif st:
-            os.unlink(a['output'])
-            os.mkfifo(a['output'])
-            os.chmod(a['output'], a['mode'])
+        try:
+            st = os.stat(a['output'])
+            if st and not stat.S_ISFIFO(st.st_mode):
+                raise click.ClickException('Output file %s exists and is not a FIFO!' % a['output'])
+            elif st:
+                os.unlink(a['output'])
+        except (IOError, OSError):
+            pass
+
+        os.mkfifo(a['output'])
+        os.chmod(a['output'], a['mode'])
 
         # if parent changes (ie shell session terminated), lets do a suicide dance.
         ppid = os.getppid()
