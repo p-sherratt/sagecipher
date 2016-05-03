@@ -6,13 +6,34 @@
 
 **sagecipher** (**s**sh **age**nt **crypt**) is a very small module which provides a cipher keyed through `ssh-agent`.  The key is obtained by generating random challenge data, passing this to `ssh-agent` to obtain a signature via the users private ssh-key for use as key material, and finally passing this through PBKDF2.
 
+## Contents
+
+* [Installation](#installation)
+* [Usage](#usage)
+  * [Using sagecipher in a Python program](#using-in-python)
+  * [Using the cli tool to provide on-demand decryption](#cli)
+
+
 ## Installation
 ```
 pip install sagecipher
 ```
 
-## Usage
+## Usage <a name='usage'></a>
+
 Before using, `ssh-agent` must be running with at least one ssh-key available for producing cipher key material:
+
+```sh
+$ source <(ssh-agent)
+Agent pid 3710
+
+$ ssh-add
+Enter passphrase for /home/somebody/.ssh/id_rsa:
+Identity added: /home/somebody/.ssh/id_rsa (/home/somebody/.ssh/id_rsa)
+```
+
+If `ssh-agent` is not available or does not have any keys available, expect to see a
+`sagecipher.cipher.SignError` Exception:
 
 ```python
 >>> from sagecipher import *
@@ -23,19 +44,29 @@ Traceback (most recent call last):
     signature = sign_via_agent(self.challenge, self.fingerprint)
   File "sagecipher/cipher.py", line 230, in sign_via_agent
     raise SignError(SignError.E_NO_KEYS)
-sagecipher.SignError: SSH agent is not running or no keys are available
+sagecipher.cipher.SignError: SSH agent is not running or no keys are available
 ```
 
-With the `ssh-agent` environment set up and an ssh-key available, the following usage example should work:
+### Using the cli tool to provide on-demand decryption to other tools <a name='cli'></a>
 
-```sh
-$ source <(ssh-agent)
-Agent pid 3710
+Check `sagecipher --help` for usage...
 
-$ ssh-add
-Enter passphrase for /home/psherratt/.ssh/id_rsa:
-Identity added: /home/psherratt/.ssh/id_rsa (/home/psherratt/.ssh/id_rsa)
 ```
+$ sagecipher encrypt - encfile
+secret sauce
+(CTRL-D)
+$ sagecipher decrypt encfile -
+secret sauce
+$ mkfifo decfile
+$ sagecipher decrypt encfile decfile &
+[1] 16753
+$ cat decfile
+secret sauce
+$
+```
+
+### Using sagecipher in a Python program <a name='using-in-python'></a>
+
 ```python
 >>> from sagecipher import *
 >>>
