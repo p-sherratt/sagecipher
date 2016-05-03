@@ -1,0 +1,19 @@
+sudo: false
+language: python
+python:
+  - "2.7"
+env:
+  - PARAMIKO_VER=1.13.4
+  - PARAMIKO_VER=2.0.0
+install:
+  - "pip install -q -U pip wheel setuptools"
+  - "pip install -q -r requirements-test.txt"
+  - "pip install -q paramiko==$PARAMIKO_VER"
+  - "pip install -q -e ."
+branches:
+  only:
+    - master
+script:
+  - coverage run ./tests/test_cipher.py
+after_success:
+  - codecov
