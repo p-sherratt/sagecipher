@@ -18,6 +18,7 @@ with open(path.join(here, 'sagecipher/__init__.py'), encoding='utf-8') as f:
 if __version__ is None:
     raise Exception('Could not read version from __init__.py!')
 
+
 setup(
     name="sagecipher",
     version=__version__,
@@ -39,10 +40,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 2 :: Only',
     ],
-    install_requires=['paramiko', 'pycrypto', 'click', 'pyinotify'],
-    extras_require={
-        ":python_version < '2.7.8'": ['passlib']
-    },
+    install_requires=['paramiko', 'pycrypto', 'click', 'pyinotify', 'passlib'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
     zip_safe=True,
