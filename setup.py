@@ -1,12 +1,22 @@
 from os import path
 from codecs import open
 from setuptools import setup, find_packages
-from sagecipher import __version__
+import re
 
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
+
+__version__ = None
+with open(path.join(here, 'sagecipher/__init__.py'), encoding='utf-8') as f:
+    for line in f:
+        v = re.match(r'^__version__\s*=\s*["\'](.*)["\']\s*$', line)
+        if v:
+            __version__ = v.group(1)
+            break
+if __version__ is None:
+    raise Exception('Could not read version from __init__.py!')
 
 setup(
     name="sagecipher",
