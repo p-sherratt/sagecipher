@@ -4,7 +4,7 @@
 [![Codecov](https://img.shields.io/codecov/c/github/p-sherratt/sagecipher/master.svg)](https://codecov.io/gh/p-sherratt/sagecipher)
 [![Build Status](https://travis-ci.org/p-sherratt/sagecipher.svg?branch=master)](https://travis-ci.org/p-sherratt/sagecipher)
 
-**sagecipher** (**s**sh **age**nt **crypt**) is a very small module which provides a cipher keyed through `ssh-agent`.  The key is obtained by generating random challenge data, passing this to `ssh-agent` to obtain a signature via the users private ssh-key for use as key material, and finally passing this through PBKDF2.
+**sagecipher** (**s**sh **age**nt **cipher**) is a very small module which provides a cipher keyed through `ssh-agent`.  The key is obtained by generating random challenge data, passing this to `ssh-agent` to obtain a signature via the users private ssh-key for use as key material, and finally passing this through PBKDF2.
 
 ## Contents
 

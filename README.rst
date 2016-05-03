@@ -5,7 +5,7 @@ sagecipher
 | |Codecov|
 | |Build Status|
 
-**sagecipher** (**s**\ sh **age**\ nt **crypt**) is a very small module
+**sagecipher** (**s**\ sh **age**\ nt **cipher**) is a very small module
 which provides a cipher keyed through ``ssh-agent``. The key is obtained
 by generating random challenge data, passing this to ``ssh-agent`` to
 obtain a signature via the users private ssh-key for use as key
