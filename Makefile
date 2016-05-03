@@ -17,3 +17,4 @@ install:
 
 release: build test docs
 	@python setup.py sdist register upload
+
