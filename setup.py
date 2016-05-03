@@ -29,7 +29,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 2 :: Only',
     ],
-    install_requires=['paramiko', 'pycrypto'],
+    install_requires=['paramiko', 'pycrypto', 'click'],
     extras_require={
         ":python_version < '2.7.8'": ['passlib']
     },
