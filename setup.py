@@ -36,6 +36,10 @@ setup(
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
     zip_safe=True,
-
+    entry_points={
+        'console_scripts': [
+            'sagecipher = sagecipher.__main__:cli'
+        ]
+    }
 )
 

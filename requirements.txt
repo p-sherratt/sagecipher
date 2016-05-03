@@ -1,3 +1,4 @@
 paramiko
 pycrypto
+click
 passlib; python_version < '2.7.8'
