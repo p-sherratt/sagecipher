@@ -186,16 +186,17 @@ def decrypt_string(ciphertext):
     padded = cipher.decrypt(ciphertext[HEADER_SIZE:])
     return unpad(padded)
 
-def encrypt_string(plaintext):
+def encrypt_string(plaintext, hex_fingerprint=None):
     """Helper function to encrypt data.
 
     Args:
         plaintext (str): The data to encrypt
+        hex_fingerprint (str): If specified, use a specific key for encryption
 
     Returns:
         ciphertext (str): The encrypted ciphertext, with cipher header prepended
     """
-    cipher = Cipher()
+    cipher = Cipher(hex_fingerprint=hex_fingerprint)
     return cipher.header() + cipher.encrypt(pad(plaintext))
 
 def pad(string):
@@ -237,7 +238,7 @@ def sign_via_agent(data, fingerprint=None):
             key_type: The SSH key type used for signing.
             signature: The data signature returned from ssh-agent.
     Raises:
-        SignError: An error occured while signing.
+        AgentKeyError: An error occured while signing.
     """
 
     agent = paramiko.Agent()
@@ -246,7 +247,7 @@ def sign_via_agent(data, fingerprint=None):
     key_fp = None
 
     if not keys:
-        raise SignError(SignError.E_NO_KEYS)
+        raise AgentKeyError(AgentKeyError.E_NO_KEYS)
 
     if fingerprint is not None:
         for key in keys:
@@ -255,7 +256,7 @@ def sign_via_agent(data, fingerprint=None):
                 sign_key = key
                 break
         if sign_key is None:
-            raise SignError(SignError.E_MISSING_KEY, fingerprint=to_hex(fingerprint))
+            raise AgentKeyError(AgentKeyError.E_MISSING_KEY, fingerprint=to_hex(fingerprint))
     else:
         sign_key = keys[0]
         key_fp = sign_key.get_fingerprint()
@@ -273,7 +274,7 @@ def sign_via_agent(data, fingerprint=None):
         'signature': sig.get_string()
     }
 
-class SignError(Exception):
+class AgentKeyError(Exception):
     """User-friendly error handling of the `sign_via_agent` function
 
     Args:
@@ -300,7 +301,7 @@ class SignError(Exception):
     def __init__(self, code, **kwargs):
         self.code = code
         self.kwargs = kwargs
-        super(SignError, self).__init__(str(self))
+        super(AgentKeyError, self).__init__(str(self))
 
     def __str__(self):
         """User-friendly description of the error"""

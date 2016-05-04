@@ -2,11 +2,14 @@
 import os
 import sys
 import stat
+import signal
 import click
 import pyinotify
 import threading
+import paramiko
+import daemon
 import time
-from . import __version__, encrypt_string, decrypt_string
+from . import __version__, encrypt_string, decrypt_string, to_hex, AgentKeyError
 
 
 @click.group()
@@ -72,6 +75,9 @@ def decrypt_to_file(_input, _output, _mode, _force):
 @click.option('--mode', default='600', help="Octal mode of output file (default: 600)")
 @click.option('--type', default='fifo', type=click.Choice(['fifo', 'file']), help="Type of output (default: fifo)")
 @click.option('--force', is_flag=True, help="Overwrite output file/fifo if it already exists")
+@click.option('--tether/--no-tether', is_flag=True,
+    help='Tether to parent process, and forcefully die when the parent dies (default: --tether)')
+
 def decrypt(**a):
     """Decrypt contents of INPUT file to OUTPUT file/fifo.
     
@@ -108,21 +114,21 @@ def decrypt(**a):
         os.mkfifo(a['output'])
         os.chmod(a['output'], a['mode'])
 
-        # if parent changes (ie shell session terminated), lets do a suicide dance.
-        ppid = os.getppid()
-        def ppid_watchdog():
-            while True:
-                with open('/tmp/moo', 'a') as f:
-                    f.write(str(os.getppid()) + "\n")
+        if a['tether']:
+	    # if parent changes (ie shell session terminated), lets do a suicide dance.
+	    ppid = os.getppid()
+	    def ppid_watchdog():
+		while True:
+		    with open('/tmp/moo', 'a') as f:
+			f.write(str(os.getppid()) + "\n")
 
-                if ppid != os.getppid():
-                    os._exit(0)
-                time.sleep(1)
+		    if ppid != os.getppid():
+			os._exit(0)
+		    time.sleep(1)
+	    t = threading.Thread(target=ppid_watchdog)
+	    t.daemon = True
+	    t.start()
 
-        t = threading.Thread(target=ppid_watchdog)
-        t.daemon = True
-        t.start()
-        
         decrypt_to_fifo(*args)
     else:
         _check_output_file(a)
@@ -133,6 +139,11 @@ def decrypt(**a):
 @click.argument('output')
 @click.option('--mode', default='600', help="Octal mode of output file (default: 600)")
 @click.option('--force', is_flag=True, help="Overwrite output file/fifo if it already exists")
+@click.option('--key',
+    help='SSH public key (HEX) fingerprint to use. If not specified, ' +
+    'sagecipher will list all available keys from ssh-agent ' +
+    'and prompt for selection.')
+
 def encrypt(**a):
     """Encrypt contents of INPUT file to OUTPUT file.
 
@@ -140,21 +151,43 @@ def encrypt(**a):
     file respectively.
     """
 
-    if a['input'] == '-':
-        text = sys.stdin.read()
-    else:
-        with open(a['input'], 'r') as f:
-            text = f.read()
+    key = None
+    if a['key'] is not None:
+        key = a['key'].replace(':','').lower()
+        if len(key) != 32:
+            raise click.ClickException('Invalid key specified')
 
-    text = encrypt_string(text)
+    try:
+        if key is None:
+            keys = paramiko.Agent().get_keys()
+            if not keys:
+                raise AgentKeyError(AgentKeyError.E_NO_KEYS)
+            click.echo('Key not specified.  Please select from the following...')
+            for i, k in enumerate(keys):
+                click.echo('[%s] %s %s' % (i+1, k.get_name(), to_hex(k.get_fingerprint())))
+            i = 0
+            while i > len(keys) or i < 1:
+                i = click.prompt('Selection (1..%s):' % len(keys), default=1)
+            key = to_hex(keys[i - 1].get_fingerprint())
 
-    if a['output'] == '-':
-        sys.stdout.write(text)
-    else:
-        _check_output_file(a)
-        with open(a['output'], 'wb') as f:
-            f.write(text)
+        if a['input'] == '-':
+            click.echo('Reading from STDIN...\n')
+            text = sys.stdin.read()
+        else:
+            with open(a['input'], 'r') as f:
+                text = f.read()
 
+        text = encrypt_string(text, key)
+
+        if a['output'] == '-':
+            sys.stdout.write(text)
+        else:
+            _check_output_file(a)
+            with open(a['output'], 'wb') as f:
+                f.write(text)
+
+    except AgentKeyError as e:
+        raise click.ClickException(str(e))
 
 if __name__ == "__main__":
     cli()

@@ -13,9 +13,8 @@
   * [Using sagecipher in a Python program](#using-in-python)
   * [Using the cli tool to provide on-demand decryption](#cli)
 
-
 ## Installation
-```
+```sh
 pip install sagecipher
 ```
 
@@ -33,7 +32,7 @@ Identity added: /home/somebody/.ssh/id_rsa (/home/somebody/.ssh/id_rsa)
 ```
 
 If `ssh-agent` is not available or does not have any keys available, expect to see a
-`sagecipher.cipher.SignError` Exception:
+`sagecipher.cipher.AgentKeyError` Exception:
 
 ```python
 >>> from sagecipher import *
@@ -43,26 +42,8 @@ Traceback (most recent call last):
   File "sagecipher/cipher.py", line 101, in __init__
     signature = sign_via_agent(self.challenge, self.fingerprint)
   File "sagecipher/cipher.py", line 230, in sign_via_agent
-    raise SignError(SignError.E_NO_KEYS)
-sagecipher.cipher.SignError: SSH agent is not running or no keys are available
-```
-
-### Using the cli tool to provide on-demand decryption to other tools <a name='cli'></a>
-
-Check `sagecipher --help` for usage...
-
-```
-$ sagecipher encrypt - encfile
-secret sauce
-(CTRL-D)
-$ sagecipher decrypt encfile -
-secret sauce
-$ mkfifo decfile
-$ sagecipher decrypt encfile decfile &
-[1] 16753
-$ cat decfile
-secret sauce
-$
+    raise AgentKeyError(AgentKeyError.E_NO_KEYS)
+sagecipher.cipher.AgentKeyError: SSH agent is not running or no keys are available
 ```
 
 ### Using sagecipher in a Python program <a name='using-in-python'></a>
@@ -91,3 +72,27 @@ $
 >>> plaintext
 'Alice, I think someone is listening!'
 ```
+
+### Using the cli tool to provide on-demand decryption to other tools <a name='cli'></a>
+
+Check `sagecipher --help` for usage. By default, the 'decrypt' operation will create a FIFO file, and then start a loop to decrypt out to the FIFO whenever it is opened.
+
+```sh
+$ sagecipher encrypt - encfile
+Key not specified.  Please select from the following...
+[1] ssh-rsa AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA
+Selection (1..2): [1]: 
+Reading from STDIN...
+
+secret sauce
+(CTRL-D)
+$ sagecipher decrypt encfile -
+secret sauce
+$ mkfifo decfile
+$ sagecipher decrypt encfile decfile &
+[1] 16753
+$ cat decfile
+secret sauce
+$
+```
+

@@ -67,14 +67,14 @@ class TestCipher(unittest.TestCase):
     def test_no_keys(self):
         auth_sock = os.environ['SSH_AUTH_SOCK']
         os.environ['SSH_AUTH_SOCK'] = ''
-        self.assertRaises(sagecipher.SignError, lambda: sagecipher.Cipher())
+        self.assertRaises(sagecipher.AgentKeyError, lambda: sagecipher.Cipher())
         os.environ['SSH_AUTH_SOCK'] = auth_sock
 
     def test_key_not_found(self):
         mock_header = '-' * sagecipher.HEADER_SIZE
         mock_fingerprint = 'AA:' * 15 + 'AA'
-        self.assertRaises(sagecipher.SignError, lambda: sagecipher.Cipher(mock_header))
-        self.assertRaises(sagecipher.SignError, lambda: sagecipher.Cipher(hex_fingerprint=mock_fingerprint))
+        self.assertRaises(sagecipher.AgentKeyError, lambda: sagecipher.Cipher(mock_header))
+        self.assertRaises(sagecipher.AgentKeyError, lambda: sagecipher.Cipher(hex_fingerprint=mock_fingerprint))
 
     def test_inverse(self):
         self._loadCiphers()
