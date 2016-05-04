@@ -7,7 +7,6 @@ import click
 import pyinotify
 import threading
 import paramiko
-import daemon
 import time
 from . import __version__, encrypt_string, decrypt_string, to_hex, AgentKeyError
 
@@ -75,7 +74,7 @@ def decrypt_to_file(_input, _output, _mode, _force):
 @click.option('--mode', default='600', help="Octal mode of output file (default: 600)")
 @click.option('--type', default='fifo', type=click.Choice(['fifo', 'file']), help="Type of output (default: fifo)")
 @click.option('--force', is_flag=True, help="Overwrite output file/fifo if it already exists")
-@click.option('--tether/--no-tether', is_flag=True,
+@click.option('--tether/--no-tether', default=True, is_flag=True,
     help='Tether to parent process, and forcefully die when the parent dies (default: --tether)')
 
 def decrypt(**a):
