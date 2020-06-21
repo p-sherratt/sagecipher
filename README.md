@@ -29,7 +29,7 @@ pip install sagecipher
 
 Before using, `ssh-agent` must be running with at least one ssh-key available for producing cipher key material:
 
-```sh
+```console
 $ source <(ssh-agent)
 Agent pid 3710
 
@@ -40,7 +40,7 @@ Identity added: /home/somebody/.ssh/id_rsa (/home/somebody/.ssh/id_rsa)
 
 ### Using the keyring backend <a name='keyring'></a>
 
-```sh
+```console
 $ sagecipher list-keys  # paramiko does not yet expose key comments, unfortunately..
 [ssh-rsa] e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
 [ssh-rsa] 38:c5:94:45:ca:01:65:d1:d0:c5:ee:5e:cd:b3:94:39
@@ -60,7 +60,7 @@ password1
 
 > the ssh key can be pre-selected in the `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` env var
 
-```sh
+```console
 $ export KEYRING_PROPERTY_SSH_KEY_FINGERPRINT=e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
 
 $ keyring get svc user2
