@@ -1,14 +1,12 @@
-
 import os
 import sys
 import stat
-import signal
 import click
 import pyinotify
 import threading
-import paramiko
 import time
-from . import __version__, encrypt_string, decrypt_string, to_hex, AgentKeyError
+from sagecipher import __version__
+from sagecipher.cipher import Cipher, SshAgentKeyError, prompt_for_key
 
 
 @click.group()
@@ -16,68 +14,77 @@ from . import __version__, encrypt_string, decrypt_string, to_hex, AgentKeyError
 def cli():
     pass
 
-def decrypt_to_fifo(_input, _output, _mode, _force, text=None):
-    def write_to_fifo(notifier):
-        st = os.stat(_output)
-        if not stat.S_ISFIFO(st.st_mode):
-            raise click.ClickException('%s is not a FIFO!' % _output)
-        if (st.st_mode & 0o777 != _mode):
-            raise click.ClickException('mode has changed on %s!' % _output)
 
-        if _input != '-':
-            f_in = open(_input, 'rb')
-            text = f_in.read()
+def decrypt_to_fifo(infile, outfile, mode, force, text=None):
+    def write_to_fifo(notifier):
+        st = os.stat(outfile)
+        if not stat.S_ISFIFO(st.st_mode):
+            raise click.ClickException("%s is not a FIFO!" % outfile)
+        if st.st_mode & 0o777 != mode:
+            raise click.ClickException("mode has changed on %s!" % outfile)
+
+        if infile != "-":
+            f_in = open(infile, "rb")
+            encdata = f_in.read()
             f_in.close()
 
         try:
-            f = open(_output, 'w')
-            text = decrypt_string(text)
-            f.write(text)
+            f = open(outfile, "wb")
+            data = Cipher.decrypt_bytes(encdata)
+            f.write(data)
             f.close()
         except IOError:
             pass
-        finally:
-            text = str(0x00) * len(text)
 
     wm = pyinotify.WatchManager()
     notifier = pyinotify.Notifier(wm, pyinotify.ProcessEvent)
-    wm.add_watch(_output, pyinotify.IN_CLOSE_NOWRITE)
+    wm.add_watch(outfile, pyinotify.IN_CLOSE_NOWRITE)
     notifier.loop(callback=write_to_fifo)
 
 
-def _check_output_file(a):
-    if os.path.isfile(a['output']):
-        if a['force']:
-            os.unlink(a['output'])
+def _checkoutfile_file(outfile, force):
+    if os.path.isfile(outfile):
+        if force:
+            os.unlink(outfile)
         else:
-            raise click.ClickException('Output file %s exists and --force is not specified!' % a['output'])
+            raise click.ClickException(
+                "Output file %s exists and --force is not specified!" % outfile
+            )
 
-def decrypt_to_file(_input, _output, _mode, _force):
-    if _input == '-':
-        text = sys.stdin.read()
+
+def decrypt_to_file(infile, outfile, mode, force):
+    if infile == "-":
+        encdata = sys.stdin.buffer.read()
     else:
-        with open(_input) as f:
-            text = f.read()
+        with open(infile, "rb") as f:
+            encdata = f.read()
 
-    text = decrypt_string(text)
+    data = Cipher.decrypt_bytes(encdata)
 
-    if _output == '-':
-        sys.stdout.write(text)
+    if outfile == "-":
+        sys.stdout.buffer.write(data)
     else:
-        with open(_output, 'w') as f:
-            f.write(text)
+        with open(outfile, "w") as f:
+            f.write(data)
 
 
 @cli.command()
-@click.argument('input')
-@click.argument('output')
-@click.option('--mode', default='600', help="Octal mode of output file (default: 600)")
-@click.option('--type', default='fifo', type=click.Choice(['fifo', 'file']), help="Type of output (default: fifo)")
-@click.option('--force', is_flag=True, help="Overwrite output file/fifo if it already exists")
-@click.option('--tether/--no-tether', default=True, is_flag=True,
-    help='Tether to parent process, and forcefully die when the parent dies (default: --tether)')
-
-def decrypt(**a):
+@click.argument("infile", default="-")
+@click.argument("outfile", default="-")
+@click.option("--mode", default="600", help="Octal mode of output file (default: 600)")
+@click.option(
+    "--fifo/--file", default=True, is_flag=True, help="Type of output (default: --fifo)"
+)
+@click.option(
+    "--force", is_flag=True, help="Overwrite output file/fifo if it already exists"
+)
+@click.option(
+    "--tether/--no-tether",
+    default=True,
+    is_flag=True,
+    help="Tether to parent process, and forcefully die when the parent dies (default: --tether)",
+)
+def decrypt(infile, outfile, mode, fifo, force, tether):
     """Decrypt contents of INPUT file to OUTPUT file/fifo.
     
     If --type is 'fifo', the process will loop forever, attempting to open the fifo for
@@ -88,105 +95,101 @@ def decrypt(**a):
     file respectively.
     """
 
-    if a['output'] == '-':
-        a['type'] = 'file'
+    if outfile == "-":
+        fifo = False
 
-    a['mode'] = int(a['mode'], 8)
-    umask = int('777',8)-a['mode']
+    mode = int(mode, 8)
+    umask = int("777", 8) - mode
     os.umask(umask)
 
-    args = [a[k] for k in ('input', 'output', 'mode', 'force')]
+    args = [infile, outfile, mode, force]
 
-    if a['type'] == 'fifo':
-        if a['input'] == '-':
+    if fifo:
+        if infile == "-":
             args.append(sys.stdin.read())
 
         try:
-            st = os.stat(a['output'])
+            st = os.stat(outfile)
             if st and not stat.S_ISFIFO(st.st_mode):
-                raise click.ClickException('Output file %s exists and is not a FIFO!' % a['output'])
+                raise click.ClickException(
+                    "Output file %s exists and is not a FIFO!" % outfile
+                )
             elif st:
-                os.unlink(a['output'])
+                os.unlink(outfile)
         except (IOError, OSError):
             pass
 
-        os.mkfifo(a['output'])
-        os.chmod(a['output'], a['mode'])
+        os.mkfifo(outfile)
+        os.chmod(outfile, mode)
 
-        if a['tether']:
-	    # if parent changes (ie shell session terminated), lets do a suicide dance.
-	    ppid = os.getppid()
-	    def ppid_watchdog():
-		while True:
-		    with open('/tmp/moo', 'a') as f:
-			f.write(str(os.getppid()) + "\n")
+        if tether:
+            # run until parent pid changes (i.e. due to termination of shell)
+            ppid = os.getppid()
 
-		    if ppid != os.getppid():
-			os._exit(0)
-		    time.sleep(1)
-	    t = threading.Thread(target=ppid_watchdog)
-	    t.daemon = True
-	    t.start()
+            def ppid_watchdog():
+                while True:
+                    if ppid != os.getppid():
+                        os._exit(0)
+                    time.sleep(1)
+
+            t = threading.Thread(target=ppid_watchdog)
+            t.daemon = True
+            t.start()
 
         decrypt_to_fifo(*args)
     else:
-        _check_output_file(a)
+        _checkoutfile_file(outfile, force)
         decrypt_to_file(*args)
 
-@cli.command()
-@click.argument('input')
-@click.argument('output')
-@click.option('--mode', default='600', help="Octal mode of output file (default: 600)")
-@click.option('--force', is_flag=True, help="Overwrite output file/fifo if it already exists")
-@click.option('--key',
-    help='SSH public key (HEX) fingerprint to use. If not specified, ' +
-    'sagecipher will list all available keys from ssh-agent ' +
-    'and prompt for selection.')
 
-def encrypt(**a):
+@cli.command()
+@click.argument("infile", default="-")
+@click.argument("outfile", default="-")
+@click.option("--mode", default="600", help="Octal mode of output file (default: 600)")
+@click.option(
+    "--force", is_flag=True, help="Overwrite output file if it already exists"
+)
+@click.option(
+    "--key",
+    help="SSH public key (HEX) fingerprint to use. If not specified, "
+    + "sagecipher will list all available keys from ssh-agent "
+    + "and prompt for selection.",
+)
+def encrypt(infile, outfile, mode, force, key):
     """Encrypt contents of INPUT file to OUTPUT file.
 
     To read from STDIN or write to STDOUT, specify '-' as the INPUT or OUTPUT
     file respectively.
     """
 
-    key = None
-    if a['key'] is not None:
-        key = a['key'].replace(':','').lower()
+    if key is not None:
+        key = key.replace(":", "").lower()
         if len(key) != 32:
-            raise click.ClickException('Invalid key specified')
+            raise click.ClickException("Invalid key specified")
 
     try:
         if key is None:
-            keys = paramiko.Agent().get_keys()
-            if not keys:
-                raise AgentKeyError(AgentKeyError.E_NO_KEYS)
-            click.echo('Key not specified.  Please select from the following...')
-            for i, k in enumerate(keys):
-                click.echo('[%s] %s %s' % (i+1, k.get_name(), to_hex(k.get_fingerprint())))
-            i = 0
-            while i > len(keys) or i < 1:
-                i = click.prompt('Selection (1..%s):' % len(keys), default=1)
-            key = to_hex(keys[i - 1].get_fingerprint())
+            key = prompt_for_key()
 
-        if a['input'] == '-':
-            click.echo('Reading from STDIN...\n')
-            text = sys.stdin.read()
+        if infile == "-":
+            click.echo("Reading from STDIN...\n")
+            data = sys.stdin.read().encode("utf8")
         else:
-            with open(a['input'], 'r') as f:
-                text = f.read()
+            with open(infile, "r") as f:
+                data = f.read()
 
-        text = encrypt_string(text, key)
+        encdata = Cipher.encrypt_bytes(data, key)
 
-        if a['output'] == '-':
-            sys.stdout.write(text)
+        if outfile == "-":
+            sys.stdout.buffer.write(encdata)
         else:
-            _check_output_file(a)
-            with open(a['output'], 'wb') as f:
-                f.write(text)
+            _checkoutfile_file(outfile, force)
+            with open(outfile, "wb") as f:
+                f.write(encdata)
 
-    except AgentKeyError as e:
+    except SshAgentKeyError as e:
         raise click.ClickException(str(e))
+
 
 if __name__ == "__main__":
     cli()
