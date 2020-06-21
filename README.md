@@ -11,8 +11,10 @@
 
 * [Installation](#installation)
 * [Usage](#usage)
+  * [Using the keyring backend](#keyring)
   * [Using sagecipher in a Python program](#using-in-python)
   * [Using the cli tool to provide on-demand decryption](#cli)
+
 
 ## Installation
 ```sh
@@ -32,19 +34,40 @@ Enter passphrase for /home/somebody/.ssh/id_rsa:
 Identity added: /home/somebody/.ssh/id_rsa (/home/somebody/.ssh/id_rsa)
 ```
 
-If `ssh-agent` is not available or does not have any keys available, expect to see a
-`sagecipher.cipher.SshAgentKeyError` Exception:
+### Using the keyring backend <a name='keyring'></a>
+```sh
+$ sagecipher list-keys  # paramiko does not yet expose key comments, unfortunately..
+[ssh-rsa] e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
+[ssh-rsa] 38:c5:94:45:ca:01:65:d1:d0:c5:ee:5e:cd:b3:94:39
 
-```python
->>> from sagecipher import *
->>> cfail = SshAgentCipher()
-Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-  File "sagecipher/cipher.py", line 101, in __init__
-    signature = sign_via_agent(self.challenge, self.fingerprint)
-  File "sagecipher/cipher.py", line 230, in sign_via_agent
-    raise SshAgentKeyError(SshAgentKeyError.E_NO_KEYS)
-sagecipher.cipher.SshAgentKeyError: SSH agent is not running or no keys are available
+$ export PYTHON_KEYRING_BACKEND=sagecipher.keyring.Keyring
+
+$ keyring set svc user1
+Password for 'user' in 'svc': 
+Please select from the following keys...
+[1] ssh-rsa e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
+[2] ssh-rsa 38:c5:94:45:ca:01:65:d1:d0:c5:ee:5e:cd:b3:94:39
+Selection (1..2): 1
+
+$ keyring get svc user1
+password1
+
+$ # the ssh key can be pre-selected in the `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` env var
+$ export KEYRING_PROPERTY_SSH_KEY_FINGERPRINT=e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
+
+$ keyring get svc user2
+password2
+
+$ python
+Python 3.6.8 (default, Jan 14 2019, 11:02:34) 
+[GCC 8.0.1 20180414 (experimental) [trunk revision 259383]] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import keyring
+>>> keyring.get_password('svc', 'user1')
+'password1'
+>>> keyring.get_password('svc', 'user2')
+'password2'
+
 ```
 
 ### Using sagecipher in a Python program <a name='using-in-python'></a>

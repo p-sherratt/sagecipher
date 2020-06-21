@@ -2,11 +2,12 @@ import os
 import sys
 import stat
 import click
+import paramiko
 import pyinotify
 import threading
 import time
 from sagecipher import __version__
-from sagecipher.cipher import Cipher, SshAgentKeyError, prompt_for_key
+from sagecipher.cipher import Cipher, SshAgentKeyError, prompt_for_key, to_hex
 
 
 @click.group()
@@ -67,6 +68,17 @@ def decrypt_to_file(infile, outfile, mode, force):
         with open(outfile, "w") as f:
             f.write(data)
 
+
+@cli.command()
+def list_keys():
+    """List keys from SSH agent"""
+    agent = paramiko.Agent()
+    keys = agent.get_keys()
+    for key in agent.get_keys():
+        # paramiko doesn't expose key comments (yet?)
+        keystr = "[{}] {}".format(key.get_name(), to_hex(key.get_fingerprint()))
+        click.echo(keystr)
+    agent.close()
 
 @cli.command()
 @click.argument("infile", default="-")

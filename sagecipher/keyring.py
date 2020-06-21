@@ -19,7 +19,15 @@ class Keyring(KeyringBase):
         This is not used for decryption, as the key fingerprint is embedded
         into the ciphertext header.
         """
+        if hasattr(self, "_ssh_key_fingerprint"):
+            return getattr(self, "_ssh_key_fingerprint")
         return prompt_for_key()
+
+    def __setattr__(self, key, value):
+        if key == "ssh_key_fingerprint":
+            self._ssh_key_fingerprint = value
+        else:
+            return super().__setattr__(key, value)
 
     def encrypt(self, password, assoc=None):
         fingerprint = self.ssh_key_fingerprint
