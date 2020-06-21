@@ -45,7 +45,7 @@ Here we will set the following environment variables:
 | Environment Variable                   | Value                        | Description                                                 |
 |----------------------------------------|------------------------------|-------------------------------------------------------------|
 | `PYTHON_KEYRING_BACKEND`               | `sagecipher.keyring.Keyring` | Tells `keyring` to use the `sagecipher` backend             |
-| `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` | <hex fingerprint of ssh key> | Pre-selects the SSH key for the `sagecipher` backend to use |
+| `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` | &lt;hex fingerprint of ssh key&gt; | Pre-selects the SSH key for the `sagecipher` backend to use |
 
 
 ```console
@@ -95,8 +95,8 @@ For more information, see:
    | Environment Variable                   | Value                        | Description                                                           |
    |----------------------------------------|------------------------------|-----------------------------------------------------------------------|
    | `PYTHON_KEYRING_BACKEND`               | `sagecipher.keyring.Keyring` | Tells `keyring` to use the `sagecipher` backend                       |
-   | `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` | <hex fingerprint of ssh key> | Pre-selects the SSH key for the `sagecipher` backend to use           |
-   | `ANSIBLE_VAULT_PASSWORD_FILE`          | <path to password script>    | `ansible-vault` will use this script to find the vault encryption key |
+   | `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` | &lt;hex fingerprint of ssh key&gt; | Pre-selects the SSH key for the `sagecipher` backend to use           |
+   | `ANSIBLE_VAULT_PASSWORD_FILE`          | &lt;path to password script&gt;    | `ansible-vault` will use this script to find the vault encryption key |
    |                                        |                              
 
    Replace the key fingerprint below with your own.
