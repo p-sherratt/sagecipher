@@ -1,4 +1,4 @@
 pycrypto
-passlib
 codecov
 pytest
+pytest-cov
