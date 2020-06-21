@@ -6,16 +6,24 @@ sagecipher
 | |Build Status|
 
 **sagecipher** (**s**\ sh **age**\ nt **cipher**) provides an AES
-cipher, whose key is obtained by signing nonce data via SSH agent. The
-cipher is illustrated in the diagram below.
+cipher, whose key is obtained by signing nonce data via SSH agent. This
+is illustrated below.
+
+|Cipher illustration|
+
+This can be used in turn by the ``keyring`` library, and by
+``ansible-vault`` to encrypt/decrypt files or secrets via the users'
+local or forwarded ssh-agent session.
 
 Contents
 --------
 
 -  `Installation <#installation>`__
 -  `Usage <#usage>`__
--  `Using sagecipher in a Python program <#using-in-python>`__
--  `Using the cli tool to provide on-demand decryption <#cli>`__
+-  `Using the keyring backend <#keyring>`__
+-  `Using with ansible-vault <#ansible>`__
+-  `Using sagecipher directly in Python <#using-in-python>`__
+-  `Using the sagecipher CLI tool <#cli>`__
 
 Installation
 ------------
@@ -39,24 +47,83 @@ available for producing cipher key material:
     Enter passphrase for /home/somebody/.ssh/id_rsa:
     Identity added: /home/somebody/.ssh/id_rsa (/home/somebody/.ssh/id_rsa)
 
-| If ``ssh-agent`` is not available or does not have any keys available,
-  expect to see a
-| ``sagecipher.cipher.SshAgentKeyError`` Exception:
+Using the keyring backend 
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: sh
 
-    >>> from sagecipher import *
-    >>> cfail = SshAgentCipher()
-    Traceback (most recent call last):
-      File "<stdin>", line 1, in <module>
-      File "sagecipher/cipher.py", line 101, in __init__
-        signature = sign_via_agent(self.challenge, self.fingerprint)
-      File "sagecipher/cipher.py", line 230, in sign_via_agent
-        raise SshAgentKeyError(SshAgentKeyError.E_NO_KEYS)
-    sagecipher.cipher.SshAgentKeyError: SSH agent is not running or no keys are available
+    $ sagecipher list-keys  # paramiko does not yet expose key comments, unfortunately..
+    [ssh-rsa] e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
+    [ssh-rsa] 38:c5:94:45:ca:01:65:d1:d0:c5:ee:5e:cd:b3:94:39
 
-Using sagecipher in a Python program 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    $ export PYTHON_KEYRING_BACKEND=sagecipher.keyring.Keyring
+
+    $ keyring set svc user1
+    Password for 'user' in 'svc': 
+    Please select from the following keys...
+    [1] ssh-rsa e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
+    [2] ssh-rsa 38:c5:94:45:ca:01:65:d1:d0:c5:ee:5e:cd:b3:94:39
+    Selection (1..2): 1
+
+    $ keyring get svc user1
+    password1
+
+    $ # the ssh key can be pre-selected in the `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` env var
+    $ export KEYRING_PROPERTY_SSH_KEY_FINGERPRINT=e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
+
+    $ keyring get svc user2
+    password2
+
+    $ python
+    Python 3.6.8 (default, Jan 14 2019, 11:02:34) 
+    [GCC 8.0.1 20180414 (experimental) [trunk revision 259383]] on linux
+    Type "help", "copyright", "credits" or "license" for more information.
+    >>> import keyring
+    >>> keyring.get_password('svc', 'user1')
+    'password1'
+    >>> keyring.get_password('svc', 'user2')
+    'password2'
+
+Using with ansible-vault 
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| In this example we create a secret key in the keyring for use with
+  ``ansible-vault``.
+| This process will work with any keyring backend, but it's assumed we
+  are up and
+| running with the ``sagecipher`` keyring backend per the previous
+  section.
+
+| For more information, see:
+| ` <https://docs.ansible.com/ansible/latest/user_guide/vault.html>`__
+
+.. code:: sh
+
+    $ # generate a random key for ansible-vault and store in the keyring
+
+    $ keyring set ansible-vault key < <(dd if=/dev/urandom bs=32 count=1 | base64)
+
+    $ # create the vault password script to retrieve the vault key
+
+    $ cat <<EOF > ~/vault-pass.sh
+    #!/bin/sh
+    keyring get ansible-vault key
+    EOF
+    $ chmod +x vault-pass.sh
+
+    $ export ANSIBLE_VAULT_PASSWORD_FILE=~/vault-pass.sh
+
+    $ ansible-vault encrypt_string "secret_password" --name "secret_attribute" > secrets.yml
+
+    $ ansible localhost -m debug -a var="secret_attribute" -e "@secrets.yml"
+
+    [WARNING]: No inventory was parsed, only implicit localhost is available
+    localhost | SUCCESS => {
+        "secret_attribute": "secret_password"
+    }
+
+Using sagecipher directly in Python 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python
 
@@ -68,19 +135,24 @@ Using sagecipher in a Python program
     >>> text
     "hello, world"
 
-Using the cli tool to provide on-demand decryption to other tools 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using the sagecipher CLI tool 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Check ``sagecipher --help`` for usage. By default, the 'decrypt'
 operation will create a FIFO file, and then start a loop to decrypt out
 to the FIFO whenever it is opened.
 
+The FIFO is created with mode 600 by default, and if the permissions are
+altered or the parent shell is terminated then the sagecipher background
+session will end.
+
 .. code:: sh
 
     $ sagecipher encrypt - encfile
-    Key not specified.  Please select from the following...
-    [1] ssh-rsa AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA
-    Selection (1..2): [1]: 
+    Please select from the following keys...
+    [1] ssh-rsa e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
+    [2] ssh-rsa 38:c5:94:45:ca:01:65:d1:d0:c5:ee:5e:cd:b3:94:39
+    Selection (1..2): 1
     Reading from STDIN...
 
     secret sauce
@@ -90,7 +162,7 @@ to the FIFO whenever it is opened.
     $ mkfifo decfile
     $ sagecipher decrypt encfile decfile &
     [1] 16753
-    $ cat decfile # decfile is just a FIFO
+    $ cat decfile  # decfile is just a FIFO
     secret sauce
     $
 
@@ -100,3 +172,5 @@ to the FIFO whenever it is opened.
    :target: https://codecov.io/gh/p-sherratt/sagecipher
 .. |Build Status| image:: https://travis-ci.org/p-sherratt/sagecipher.svg?branch=master
    :target: https://travis-ci.org/p-sherratt/sagecipher
+.. |Cipher illustration| image:: docs/sagecipher.png
+
