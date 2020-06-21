@@ -4,12 +4,12 @@ import re
 
 here = path.abspath(path.dirname(__file__))
 
-with open(path.join(here, "README.rst"), encoding="utf-8") as f:
+with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
     name="sagecipher",
-    version="0.7.1",
+    version="0.7.3",
     packages=["sagecipher"],
     author="Paul Sherratt",
     author_email="paul@paul.sh",
@@ -17,6 +17,7 @@ setup(
     keywords="ssh-agent paramiko cipher cloginrc encryption keyring ansible vault",
     description="Uses SSH agent to encrypt/decrypt arbitrary data",
     long_description=long_description,
+    long_description_content_type="text/markdown",
     license="Apache",
     classifiers=[
         "Development Status :: 3 - Alpha",

@@ -6,7 +6,7 @@
 
 **sagecipher** (**s**sh **age**nt **cipher**) provides an AES cipher, whose key is obtained by signing nonce data via SSH agent.  This is illustrated below.
 
-![Cipher illustration](docs/sagecipher.png)
+![Cipher illustration](https://raw.githubusercontent.com/p-sherratt/sagecipher/master/docs/sagecipher.png)
 
 This can be used in turn by the `keyring` library, and by `ansible-vault` to encrypt/decrypt files or secrets via the users' local or forwarded ssh-agent session.
 
@@ -40,6 +40,14 @@ Identity added: /home/somebody/.ssh/id_rsa (/home/somebody/.ssh/id_rsa)
 
 ### Using the keyring backend <a name='keyring'></a>
 
+Here we will set the following environment variables:
+
+| Environment Variable                   | Value                        | Description                                                 |
+|----------------------------------------|------------------------------|-------------------------------------------------------------|
+| `PYTHON_KEYRING_BACKEND`               | `sagecipher.keyring.Keyring` | Tells `keyring` to use the `sagecipher` backend             |
+| `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` | <hex fingerprint of ssh key> | Pre-selects the SSH key for the `sagecipher` backend to use |
+
+
 ```console
 $ sagecipher list-keys  # paramiko does not yet expose key comments, unfortunately..
 [ssh-rsa] e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
@@ -56,11 +64,7 @@ Selection (1..2): 1
 
 $ keyring get svc user1
 password1
-```
 
-> the ssh key can be pre-selected in the `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` env var
-
-```console
 $ export KEYRING_PROPERTY_SSH_KEY_FINGERPRINT=e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
 
 $ keyring get svc user2
@@ -87,6 +91,13 @@ For more information, see:
 [https://docs.ansible.com/ansible/latest/user_guide/vault.html]()
 
 1. Set up environment variables
+
+   | Environment Variable                   | Value                        | Description                                                           |
+   |----------------------------------------|------------------------------|-----------------------------------------------------------------------|
+   | `PYTHON_KEYRING_BACKEND`               | `sagecipher.keyring.Keyring` | Tells `keyring` to use the `sagecipher` backend                       |
+   | `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` | <hex fingerprint of ssh key> | Pre-selects the SSH key for the `sagecipher` backend to use           |
+   | `ANSIBLE_VAULT_PASSWORD_FILE`          | <path to password script>    | `ansible-vault` will use this script to find the vault encryption key |
+   |                                        |                              
 
    Replace the key fingerprint below with your own.
    
