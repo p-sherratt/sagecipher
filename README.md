@@ -39,6 +39,7 @@ Identity added: /home/somebody/.ssh/id_rsa (/home/somebody/.ssh/id_rsa)
 ```
 
 ### Using the keyring backend <a name='keyring'></a>
+
 ```sh
 $ sagecipher list-keys  # paramiko does not yet expose key comments, unfortunately..
 [ssh-rsa] e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
@@ -55,8 +56,11 @@ Selection (1..2): 1
 
 $ keyring get svc user1
 password1
+```
 
-$ # the ssh key can be pre-selected in the `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` env var
+> the ssh key can be pre-selected in the `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` env var
+
+```sh
 $ export KEYRING_PROPERTY_SSH_KEY_FINGERPRINT=e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
 
 $ keyring get svc user2
@@ -71,7 +75,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 'password1'
 >>> keyring.get_password('svc', 'user2')
 'password2'
-
 ```
 
 ### Using with ansible-vault <a name='ansible'></a>
@@ -81,32 +84,46 @@ This process will work with any keyring backend, but it's assumed we are up and
 running with the `sagecipher` keyring backend per the previous section.
 
 For more information, see: 
-[](https://docs.ansible.com/ansible/latest/user_guide/vault.html)
+[https://docs.ansible.com/ansible/latest/user_guide/vault.html]()
 
-```sh
-$ # generate a random key for ansible-vault and store in the keyring
+1. Set up environment variables
 
-$ keyring set ansible-vault key < <(dd if=/dev/urandom bs=32 count=1 | base64)
+   Replace the key fingerprint below with your own.
+   
+   ```sh
+   export PYTHON_KEYRING_BACKEND=sagecipher.keyring.Keyring
+   export KEYRING_PROPERTY_SSH_KEY_FINGERPRINT=e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
+   export ANSIBLE_VAULT_PASSWORD_FILE=~/vault-pass.sh
+   ```
+   
+2. Generate a random key for ansible-vault and store in the keyring
 
-$ # create the vault password script to retrieve the vault key
+   ```sh
+   keyring set ansible-vault key < <(dd if=/dev/urandom bs=32 count=1 | base64)
+   ```
 
-$ cat <<EOF > ~/vault-pass.sh
-#!/bin/sh
-keyring get ansible-vault key
-EOF
-$ chmod +x vault-pass.sh
+3. Create the vault password script to retrieve the vault key
 
-$ export ANSIBLE_VAULT_PASSWORD_FILE=~/vault-pass.sh
+   ```console
+   $ cat <<EOF > ~/vault-pass.sh
+   #!/bin/sh
+   keyring get ansible-vault key
+   EOF
+   
+   $ chmod +x vault-pass.sh
+   ```
 
-$ ansible-vault encrypt_string "secret_password" --name "secret_attribute" > secrets.yml
+4. Test it out with `ansible-vault`
 
-$ ansible localhost -m debug -a var="secret_attribute" -e "@secrets.yml"
-
-[WARNING]: No inventory was parsed, only implicit localhost is available
-localhost | SUCCESS => {
-    "secret_attribute": "secret_password"
-}
-```
+   ```console
+   $ ansible-vault encrypt_string "secret_password" --name "secret_attribute" > secrets.yml
+   $ ansible localhost -m debug -a var="secret_attribute" -e "@secrets.yml"
+   
+   [WARNING]: No inventory was parsed, only implicit localhost is available
+   localhost | SUCCESS => {
+       "secret_attribute": "secret_password"
+   }
+   ```
 
 ### Using sagecipher directly in Python <a name='using-in-python'></a>
 
@@ -126,7 +143,7 @@ Check `sagecipher --help` for usage. By default, the 'decrypt' operation will cr
 
 The FIFO is created with mode 600 by default, and if the permissions are altered or the parent shell is terminated then the sagecipher background session will end.
 
-```sh
+```console
 $ sagecipher encrypt - encfile
 Please select from the following keys...
 [1] ssh-rsa e8:19:fe:c5:0a:b4:57:5d:96:27:b3:e3:ec:ba:24:3c
@@ -136,6 +153,7 @@ Reading from STDIN...
 
 secret sauce
 (CTRL-D)
+
 $ sagecipher decrypt encfile
 secret sauce
 $ mkfifo decfile
