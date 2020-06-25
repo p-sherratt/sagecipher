@@ -9,7 +9,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="sagecipher",
-    version="0.7.3",
+    version="0.7.4",
     packages=["sagecipher"],
     author="Paul Sherratt",
     author_email="paul@paul.sh",
@@ -40,5 +40,8 @@ setup(
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     zip_safe=True,
-    entry_points={"console_scripts": ["sagecipher = sagecipher.__main__:cli"]},
+    entry_points={
+        "console_scripts": ["sagecipher = sagecipher.__main__:cli"],
+        "keyring.backends": ["sagecipher = sagecipher.keyring"]
+    },
 )

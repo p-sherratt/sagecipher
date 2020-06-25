@@ -44,9 +44,10 @@ Here we will set the following environment variables:
 
 | Environment Variable                   | Value                        | Description                                                 |
 |----------------------------------------|------------------------------|-------------------------------------------------------------|
-| `PYTHON_KEYRING_BACKEND`               | `sagecipher.keyring.Keyring` | Tells `keyring` to use the `sagecipher` backend             |
+| `PYTHON_KEYRING_BACKEND`               | `sagecipher.keyring.Keyring` | Tells `keyring` explicitly to use the `sagecipher` backend |
 | `KEYRING_PROPERTY_SSH_KEY_FINGERPRINT` | &lt;hex fingerprint of ssh key&gt; | Pre-selects the SSH key for the `sagecipher` backend to use |
 
+If no other keyring backends are available, sagecipher will be selected as the default backend with a `priority` of 1.  The `PYTHON_KEYRING_BACKEND` environment variable can be set to explicitly set the backend.  See the [keyring docs](https://keyring.readthedocs.io/en/latest/) for more help using the keyring library.
 
 ```console
 $ sagecipher list-keys  # paramiko does not yet expose key comments, unfortunately..
