@@ -9,7 +9,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="sagecipher",
-    version="0.7.5-dev",
+    version="0.7.5",
     packages=["sagecipher"],
     author="Paul Sherratt",
     author_email="paul@paul.sh",
