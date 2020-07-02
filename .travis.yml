@@ -11,8 +11,8 @@ install:
   - "pip install -q -r requirements-test.txt"
   - "pip install -q -e ."
 branches:
-  only:
-    - master
+  except:
+    - py2
 script:
   - pytest --cov=sagecipher tests/
 after_success:
