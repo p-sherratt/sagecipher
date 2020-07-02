@@ -1,5 +1,5 @@
 paramiko
-pycrypto
+pycryptodome
 click
 pyinotify
 keyring
