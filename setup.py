@@ -33,7 +33,6 @@ setup(
         "paramiko",
         "pycryptodome",
         "click",
-        "pyinotify",
         "keyring",
         "keyrings.alt",
     ],

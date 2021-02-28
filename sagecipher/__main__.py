@@ -3,7 +3,6 @@ import sys
 import stat
 import click
 import paramiko
-import pyinotify
 import threading
 import time
 from sagecipher import __version__
@@ -17,30 +16,24 @@ def cli():
 
 
 def decrypt_to_fifo(infile, outfile, mode, force, text=None):
-    def write_to_fifo(notifier):
-        st = os.stat(outfile)
-        if not stat.S_ISFIFO(st.st_mode):
-            raise click.ClickException("%s is not a FIFO!" % outfile)
-        if st.st_mode & 0o777 != mode:
-            raise click.ClickException("mode has changed on %s!" % outfile)
+    st = os.stat(outfile)
+    if not stat.S_ISFIFO(st.st_mode):
+        raise click.ClickException("%s is not a FIFO!" % outfile)
+    if st.st_mode & 0o777 != mode:
+        raise click.ClickException("mode has changed on %s!" % outfile)
 
-        if infile != "-":
-            f_in = open(infile, "rb")
-            encdata = f_in.read()
-            f_in.close()
+    if infile != "-":
+        f_in = open(infile, "rb")
+        encdata = f_in.read()
+        f_in.close()
 
-        try:
-            f = open(outfile, "wb")
-            data = Cipher.decrypt_bytes(encdata)
-            f.write(data)
-            f.close()
-        except IOError:
-            pass
-
-    wm = pyinotify.WatchManager()
-    notifier = pyinotify.Notifier(wm, pyinotify.ProcessEvent)
-    wm.add_watch(outfile, pyinotify.IN_CLOSE_NOWRITE)
-    notifier.loop(callback=write_to_fifo)
+    try:
+        f = open(outfile, "wb")
+        data = Cipher.decrypt_bytes(encdata)
+        f.write(data)
+        f.close()
+    except IOError:
+        pass
 
 
 def _checkoutfile_file(outfile, force):
