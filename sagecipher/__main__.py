@@ -65,7 +65,7 @@ def decrypt_to_file(infile, outfile, mode, force):
     if outfile == "-":
         sys.stdout.buffer.write(data)
     else:
-        with open(outfile, "w") as f:
+        with open(outfile, "wb") as f:
             f.write(data)
 
 
@@ -184,7 +184,7 @@ def encrypt(infile, outfile, mode, force, key):
             key = prompt_for_key()
 
         if infile == "-":
-            click.echo("Reading from STDIN...\n")
+            click.echo("Reading from STDIN...\n", err=True)
             data = sys.stdin.read().encode("utf8")
         else:
             with open(infile, "r") as f:
