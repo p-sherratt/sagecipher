@@ -18,6 +18,7 @@ This can be used in turn by the `keyring` library, and by `ansible-vault` to enc
   * [Using with ansible-vault](#ansible)
   * [Using sagecipher directly in Python](#using-in-python)
   * [Using the sagecipher CLI tool](#cli)
+* [Disclaimer](#disclaimer)
 
 
 ## Installation
@@ -176,7 +177,7 @@ secret sauce
 $
 ```
 
-## Disclaimer
+## Disclaimer <a name='disclaimer'></a>
 
 
 ### Use of sagecipher
