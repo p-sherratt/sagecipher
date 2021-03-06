@@ -1,5 +1,6 @@
 from keyrings.alt.file_base import Keyring as KeyringBase
 from sagecipher.cipher import Cipher, SshAgentKeyError, prompt_for_key
+from keyring.util import properties
 
 
 class Keyring(KeyringBase):
@@ -7,6 +8,24 @@ class Keyring(KeyringBase):
     filename = "sagecipher_pass.cfg"
     scheme = "[PBKDF2] AES256.CBC (sagecipher)"
     version = "1.0"
+
+    @property
+    def sagecipher_data(self):
+        """
+        The environment variable `KEYRING_PROPERTY_SAGECIPHER_DATA` can
+        be used to specify the data file path.  If this is not defined,
+        use the default path.
+        """
+        if hasattr(self, "_sagecipher_data"):
+            return getattr(self, "_sagecipher_data")
+
+    @properties.NonDataProperty
+    def file_path(self):
+        """
+        The path to the file where passwords are stored. This property
+        may be overridden by the subclass or at the instance level.
+        """
+        return self.sagecipher_data or super().file_path
 
     @property
     def ssh_key_fingerprint(self):
@@ -26,6 +45,8 @@ class Keyring(KeyringBase):
     def __setattr__(self, key, value):
         if key == "ssh_key_fingerprint":
             self._ssh_key_fingerprint = value
+        elif key == "sagecipher_data":
+            self._sagecipher_data = value
         else:
             return super().__setattr__(key, value)
 
