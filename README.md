@@ -176,3 +176,24 @@ secret sauce
 $
 ```
 
+## Disclaimer
+
+
+### Use of sagecipher
+
+This tool is to be used at your own risk.
+
+- Sagecipher is only intended as a deterrant, and to reduce the risk of accidental password leaks.
+
+- Password authentication should be considered fundamentally broken to begin with: an attacker with privileged access to the same machine where password authentication is taking place is likely able to intercept your credentials even if these are stored in an HSM.  Please consider stronger technologies to lock-down the authentication between systems and applications.
+
+- Implementations of signature generation functions are not necessarily stable, or deterministic.  Depending on the type of SSH key and the ssh-agent implementation used, you may find that your encrypted secrets are not recoverable due to the use of non-deterministic signatures, or that you are unable to decrypt secrets after upgrading to a different version of ssh-agent.
+
+
+### Use of ssh-agent
+
+The use of sagecipher depends on the use ssh-agent and it is important to be aware of the risks here too.
+
+- In the event a system is compromised where your ssh-agent session is exposed, an attacker will be able to use your session to decrypt your sagecipher-encrypted data and/or authenticate SSH sessions to other devices using your credentials.
+
+- If you use ssh-agent forwarding, this increases the exposure of your ssh-agent session to *every* host you connect to in this manner.  As an alternative to ssh-agent forwarding, please consider SSH tunelling instead in order to reduce the attack surface of ssh-agent.
