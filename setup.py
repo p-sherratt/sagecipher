@@ -36,8 +36,8 @@ setup(
         "pyinotify",
         "keyring",
         "keyrings.alt",
+        "pytest-runner",
     ],
-    setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     zip_safe=True,
     entry_points={
