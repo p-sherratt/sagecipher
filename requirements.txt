@@ -4,3 +4,4 @@ click
 pyinotify
 keyring
 keyrings.alt
+pytest-runner
