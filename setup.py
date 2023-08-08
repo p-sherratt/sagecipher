@@ -35,7 +35,7 @@ setup(
         "click",
         "keyring",
         "keyrings.alt",
-    ],
+    ] + (["pyinotify"] if sys.platform.startswith("linux") else []),
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     zip_safe=True,
