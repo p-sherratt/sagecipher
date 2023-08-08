@@ -15,7 +15,7 @@ def cli():
     pass
 
 
-def decrypt_to_fifo(infile, outfile, mode, force, text=None, writeonce):
+def decrypt_to_fifo(infile, outfile, mode, force, text=None, writeonce=False):
     def write_to_fifo(notifier):
         st = os.stat(outfile)
         if not stat.S_ISFIFO(st.st_mode):
