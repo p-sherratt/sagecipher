@@ -1,6 +1,7 @@
 from os import path
 from setuptools import setup, find_packages
 import re
+import sys
 
 here = path.abspath(path.dirname(__file__))
 
@@ -33,10 +34,9 @@ setup(
         "paramiko",
         "pycryptodome",
         "click",
-        "pyinotify",
         "keyring",
         "keyrings.alt",
-    ],
+    ] + (["pyinotify"] if sys.platform.startswith("linux") else []),
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
     zip_safe=True,

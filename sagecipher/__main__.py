@@ -3,7 +3,6 @@ import sys
 import stat
 import click
 import paramiko
-import pyinotify
 import threading
 import time
 from sagecipher import __version__
@@ -16,7 +15,7 @@ def cli():
     pass
 
 
-def decrypt_to_fifo(infile, outfile, mode, force, text=None):
+def decrypt_to_fifo(infile, outfile, mode, force, text=None, writeonce=False):
     def write_to_fifo(notifier):
         st = os.stat(outfile)
         if not stat.S_ISFIFO(st.st_mode):
@@ -28,6 +27,8 @@ def decrypt_to_fifo(infile, outfile, mode, force, text=None):
             f_in = open(infile, "rb")
             encdata = f_in.read()
             f_in.close()
+        else:
+            encdata = text
 
         try:
             f = open(outfile, "wb")
@@ -37,10 +38,15 @@ def decrypt_to_fifo(infile, outfile, mode, force, text=None):
         except IOError:
             pass
 
-    wm = pyinotify.WatchManager()
-    notifier = pyinotify.Notifier(wm, pyinotify.ProcessEvent)
-    wm.add_watch(outfile, pyinotify.IN_CLOSE_NOWRITE)
-    notifier.loop(callback=write_to_fifo)
+    if writeonce:
+        write_to_fifo(None)
+    else:
+        import pyinotify
+
+        wm = pyinotify.WatchManager()
+        notifier = pyinotify.Notifier(wm, pyinotify.ProcessEvent)
+        wm.add_watch(outfile, pyinotify.IN_CLOSE_NOWRITE)
+        notifier.loop(callback=write_to_fifo)
 
 
 def _checkoutfile_file(outfile, force):
@@ -96,7 +102,10 @@ def list_keys():
     is_flag=True,
     help="Tether to parent process, and forcefully die when the parent dies (default: --tether)",
 )
-def decrypt(infile, outfile, mode, fifo, force, tether):
+@click.option(
+    "--writeonce", default=False, is_flag=True, help="write to fifo only once"
+)
+def decrypt(infile, outfile, mode, fifo, force, tether, writeonce):
     """Decrypt contents of INPUT file to OUTPUT file/fifo.
     
     If --type is 'fifo', the process will loop forever, attempting to open the fifo for
@@ -119,6 +128,10 @@ def decrypt(infile, outfile, mode, fifo, force, tether):
     if fifo:
         if infile == "-":
             args.append(sys.stdin.read())
+        else:
+            args.append(None)
+
+        args.append(writeonce)
 
         try:
             st = os.stat(outfile)
